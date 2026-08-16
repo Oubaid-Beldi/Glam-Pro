@@ -1,7 +1,7 @@
 
 # CLAUDE.md — GLAM PRO Project Memory
 
-Read this file first, every session, before doing anything else. Then read the highest-numbered file in `docs/sessions/` for exactly where the last session left off. The scope and sequencing are already decided — don't re-derive them from scratch, follow `docs/PLAN.md` (the full 7-day plan) and this file.
+Read this file first, every session, before doing anything else. Then read **all** files in `docs/sessions/`, in order, for the full history of what's been built and why. The scope and sequencing are already decided — don't re-derive them from scratch, follow `docs/PLAN.md` (the full 7-day plan) and this file.
 
 ## Project
 
@@ -65,18 +65,20 @@ RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain
 - Google OAuth2 Client ID/Secret are NOT Netlify env vars — they're configured directly in the Supabase dashboard under Authentication → Providers. The app only ever calls `supabase.auth.signInWithOAuth({provider: 'google'})`.
 - If an env var is missing, ask the user for it — don't invent a value.
 - Every session ends the same way: commit + push to `main` (triggers Netlify auto-deploy) → confirm the **live** URL actually works, not just localhost → update the "Current status" section below → append a new `docs/sessions/0N-<name>.md`.
+- **Commit messages:** `<feature-slug> - <three word change description>`. No mention of "session" anywhere in a commit message — session numbering is a docs/sessions/ concept only, not a git concept. Reuse the same feature-slug every time that feature is touched again, don't invent a new one — that's what makes `git log` read as a history per feature instead of noise. Canonical feature-slugs for this project (use exactly these, add a new one only if a session genuinely starts a feature not listed): `app-shell`, `auth`, `projects`, `tasks`, `notes`, `ai-generation`, `scheduling`, `calendar`, `linkedin`, `data-model`, `project-log` (for CLAUDE.md/docs-only commits with no feature code). Example history: `app-shell - initial project scaffold`, `data-model - add supabase schema`, `project-log - update status log`, `app-shell - responsive mobile drawer`.
 
 ## Session log
 
 *(one line per completed session, appended in order — do not reorder or delete old entries)*
 
 - docs/sessions/01-foundation.md
+- docs/sessions/02-auth-projects.md
 
 ## Current status
 
 *(overwrite this section each session — it's the single source of truth for "where are we")*
 
-- Last completed: Session 1 — Foundation & live pipeline (including a mobile-responsive pass on the shell: hamburger-triggered sidebar drawer below 768px)
-- Next up: Session 2 — Auth + Projects (Google OAuth2 sign-in, projects CRUD)
-- Live URL: https://glowing-sundae-86a505.netlify.app/
-- Known issues / TODO: no Supabase client wired into the frontend yet (session 2); no auth; no CRUD; see docs/sessions/01-foundation.md for details
+- Last completed: Session 2 — Auth + Projects (Google OAuth2 sign-in/logout gating the whole app shell; projects CRUD — create/list/select-active, active project as client-side app state)
+- Next up: Session 3 — Tasks (tasks CRUD scoped to the active project, per docs/PLAN.md Day 3; no schema changes needed, table + RLS already exist)
+- Live URL: [glampro.netlify.app](https://glampro.netlify.app/)
+- Known issues / TODO: a temporary Supabase Personal Access Token was generated this session for direct Management API debugging access — confirm with the user it's been revoked (dashboard → Account → Access Tokens) before assuming it's gone. No other known issues.

@@ -43,6 +43,17 @@ https://glowing-sundae-86a505.netlify.app/
 - Live: `curl https://glowing-sundae-86a505.netlify.app/api/health` → `200 {"ok":true}`.
 - Live: `curl https://ihgfkcnorylegchoddxx.supabase.co/rest/v1/projects?select=id&limit=1` with the anon key → `200 []`, confirming the schema is applied and RLS is active.
 
+## Addendum: mobile-responsive pass
+
+CLAUDE.md's Design System section gained a responsive-design rule after the initial shell was built and deployed; this addendum brings the already-shipped shell in line with it before session 2 starts.
+
+- **Pattern chosen:** hamburger-triggered drawer (not a bottom nav), for consistency with a sidebar that already has six items and room to grow.
+- Below `md` (768px): sidebar is `fixed` + `-translate-x-full` (off-canvas) by default; a hamburger button in the top bar (`TopBar`, `md:hidden`) opens it by flipping shared `sidebarOpen` state, owned by `AppLayout` and passed to both `Sidebar` and `TopBar`. Opening shows a semi-transparent backdrop (`fixed inset-0`, `md:hidden`) that closes the drawer on click; the drawer itself has an `X` close button; selecting a nav link also closes it (`onClick={onClose}` on every `NavLink`).
+- At `md` and up: sidebar is permanently `translate-x-0`, hamburger and backdrop are hidden (`md:hidden`), behavior unchanged from the original build.
+- Touch targets: hamburger button, project-switcher trigger, and avatar trigger are all `size-11`/`h-11` (44px) at every width; sidebar nav links are `min-h-11`. Verified via Playwright bounding-box checks at a 375px viewport — all measured exactly 44px.
+- No horizontal scroll: verified `document.documentElement.scrollWidth === clientWidth` at 320px, 375px, and 1024px viewports (also added a defensive `overflow-x-hidden` on the root layout div).
+- Checked in a real browser (Playwright) at 320px, 375px, and 1024px: drawer open/close, backdrop-click-to-close, nav-link-click-to-close-and-navigate, and the unaffected desktop layout all confirmed visually and behaviorally before considering this done.
+
 ## What session 2 should do first
 
 1. Read this file and CLAUDE.md's "Current status" before anything else.

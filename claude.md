@@ -1,5 +1,5 @@
 
- CLAUDE.md — GLAM PRO Project Memory
+# CLAUDE.md — GLAM PRO Project Memory
 
 Read this file first, every session, before doing anything else. Then read the highest-numbered file in `docs/sessions/` for exactly where the last session left off. The scope and sequencing are already decided — don't re-derive them from scratch, follow `docs/PLAN.md` (the full 7-day plan) and this file.
 
@@ -29,21 +29,22 @@ Solo dev, context gets cleared between sessions on purpose to avoid overload. Ev
 - Layout: fixed left sidebar (Dashboard · Projects · Tasks · Notes · Marketing · Calendar) + top bar with project switcher + avatar
 - Components: shadcn/ui primitives only, don't hand-roll. Rounded-xl cards, soft shadows, 8px spacing scale (dense, dashboard-style, not spacious)
 - Icons: lucide-react only, never emoji
+- **Responsive, mobile-first:** below ~768px the sidebar collapses into a hamburger-triggered drawer (or a bottom nav — pick one and stay consistent), main content reflows to a single column, tables/cards stack instead of overflowing. Touch targets ≥44×44px. No horizontal scroll at any width. Every screen built in every session must be checked at a mobile width before that session is considered done, not just desktop.
 
 ## Data model (Supabase / Postgres)
 
 ```sql
 profiles (id uuid pk, email text, name text)
- 
+
 projects (id uuid pk, owner_id uuid fk->profiles, name text, description text, created_at timestamptz)
- 
+
 tasks (id uuid pk, project_id uuid fk->projects, title text,
        status text check in ('todo','doing','done'),
        priority text check in ('low','medium','high'),
        assignee text, due_date date, created_at timestamptz)
- 
+
 notes (id uuid pk, project_id uuid fk->projects, title text, content text, created_at timestamptz)
- 
+
 posts (id uuid pk, project_id uuid fk->projects,
        objective text,
        ai_variants jsonb,
@@ -75,7 +76,7 @@ RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain
 
 *(overwrite this section each session — it's the single source of truth for "where are we")*
 
-- Last completed: Session 1 — Foundation & live pipeline
+- Last completed: Session 1 — Foundation & live pipeline (including a mobile-responsive pass on the shell: hamburger-triggered sidebar drawer below 768px)
 - Next up: Session 2 — Auth + Projects (Google OAuth2 sign-in, projects CRUD)
 - Live URL: https://glowing-sundae-86a505.netlify.app/
 - Known issues / TODO: no Supabase client wired into the frontend yet (session 2); no auth; no CRUD; see docs/sessions/01-foundation.md for details

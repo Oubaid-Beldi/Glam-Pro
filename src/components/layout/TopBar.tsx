@@ -1,4 +1,4 @@
-import { ChevronsUpDown } from 'lucide-react'
+import { ChevronsUpDown, Menu } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -9,26 +9,37 @@ import {
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 
-export function TopBar() {
+export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-card px-6">
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          className={cn(
-            buttonVariants({ variant: 'outline' }),
-            'h-9 justify-between gap-2 rounded-lg px-3 text-sm font-medium',
-          )}
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-2 border-b border-border bg-card px-3 md:px-6">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          aria-label="Open menu"
+          className="flex size-11 shrink-0 items-center justify-center rounded-lg text-foreground hover:bg-muted md:hidden"
         >
-          No project selected
-          <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuItem disabled>No projects yet</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          <Menu className="h-5 w-5" />
+        </button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              buttonVariants({ variant: 'outline' }),
+              'h-11 min-w-0 justify-between gap-2 rounded-lg px-3 text-sm font-medium md:h-9',
+            )}
+          >
+            <span className="truncate">No project selected</span>
+            <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuItem disabled>No projects yet</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-2 rounded-full outline-none ring-ring focus-visible:ring-2">
+        <DropdownMenuTrigger className="flex size-11 shrink-0 items-center justify-center rounded-full outline-none ring-ring focus-visible:ring-2">
           <Avatar className="h-9 w-9">
             <AvatarFallback className="bg-primary text-primary-foreground">
               ?

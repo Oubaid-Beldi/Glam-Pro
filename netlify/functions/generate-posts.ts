@@ -53,7 +53,7 @@ router.post('/generate-posts', async (req, res) => {
     error: userError,
   } = await authClient.auth.getUser(token)
   if (userError || !user) {
-    res.status(401).json({ error: 'Invalid or expired session.', detail: userError?.message })
+    res.status(401).json({ error: 'Invalid or expired session.' })
     return
   }
 

@@ -47,18 +47,19 @@ router.post('/generate-posts', async (req, res) => {
     return
   }
 
-  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  })
-
+  const authClient = createClient(supabaseUrl, supabaseAnonKey)
   const {
     data: { user },
     error: userError,
-  } = await userClient.auth.getUser(token)
+  } = await authClient.auth.getUser(token)
   if (userError || !user) {
-    res.status(401).json({ error: 'Invalid or expired session.' })
+    res.status(401).json({ error: 'Invalid or expired session.', detail: userError?.message })
     return
   }
+
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  })
 
   const { data: project, error: projectError } = await userClient
     .from('projects')

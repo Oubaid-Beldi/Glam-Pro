@@ -76,15 +76,17 @@ RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain
 - docs/sessions/03-tasks.md
 - docs/sessions/04-notes.md
 - docs/sessions/05-ai-generation.md
+- docs/sessions/06-scheduling-calendar.md
 
 ## Current status
 
 *(overwrite this section each session — it's the single source of truth for "where are we")*
 
-- Last completed: Session 5 — AI post generation (`netlify/functions/generate-posts.ts` calling Groq, model `llama-3.3-70b-versatile`, for 1-3 LinkedIn draft posts; Marketing page: objective → generate → inline edit → validate → saves as a `draft` post row with full `ai_variants`, per docs/PLAN.md Day 5)
-- Next up: Session 6 — Scheduling + Calendar (date-time picker on saved drafts, calendar/filtered-list view of scheduled/published/pending/failed, hourly Scheduled Function for due posts, per docs/PLAN.md Day 6)
+- Last completed: Session 6 — Scheduling + Calendar (`schedulePost`/`unschedulePost` on posts, datetime-local picker + platform badge on Marketing's saved posts, Calendar rebuilt as a project-scoped status-grouped filtered list, `netlify/functions/scheduler.ts` hourly Scheduled Function flipping due `scheduled` posts to `published` via the service role client, per docs/PLAN.md Day 6)
+- Next up: Session 7 — LinkedIn auto-publish (stretch goal, manual-fallback if it doesn't land in time) + final polish pass, per docs/PLAN.md Day 7
 - Live URL: [glampro.netlify.app](https://glampro.netlify.app/)
 - Known issues / TODO:
-  - **Fixed this session, worth remembering:** production's `SUPABASE_URL` env var had carried a stray `/rest/v1/` suffix since session 1 (despite session 1's log claiming it was corrected) — undetected for 4 sessions because no server-side function code touched Supabase until this session's `generate-posts.ts`. Corrected via `netlify env:set SUPABASE_URL "https://ihgfkcnorylegchoddxx.supabase.co" --context production` (+ `dev` context for local testing) and redeployed. If a *new* server-side function starts throwing odd Supabase errors, this class of bug (stale/wrong env var, not app code) is worth ruling out early.
-  - Session 4's Notes page still has an unconfirmed real authenticated live round-trip (see docs/sessions/04-notes.md) — low priority, since Notes never calls a Netlify Function and so was never actually affected by the `SUPABASE_URL` bug above, but worth closing out opportunistically.
-  - Session 5's AI generation flow **was** fully verified live end-to-end (real Groq calls, real `posts` table writes, confirmed persisting across reload) — see docs/sessions/05-ai-generation.md.
+  - **New env var this session:** `SUPABASE_SERVICE_ROLE_KEY` is now set in Netlify (production + dev contexts) — needed by `scheduler.ts` to bypass RLS for its cross-user cron job. See docs/sessions/06-scheduling-calendar.md for how it was obtained (auto-mode blocked embedding the Supabase Management API PAT in shell commands; user fetched the key from the Supabase dashboard directly instead).
+  - Session 4's Notes page still has an unconfirmed real authenticated live round-trip (see docs/sessions/04-notes.md) — low priority, still not affected by any bug found so far, but worth closing out opportunistically.
+  - Session 5's AI generation and session 6's scheduling/calendar flows **were both** fully verified live end-to-end against the real account — see docs/sessions/05-ai-generation.md and docs/sessions/06-scheduling-calendar.md. Session 6 also verified the actual `scheduler.ts` function logic against real production data (not just the UI): a real post was scheduled, then found "due" and correctly flipped to `published` when the function ran. The one thing not observed live is the hourly cron *trigger* itself firing unattended — not practical to wait out in-session; it runs automatically going forward.
+  - Session 7 should set `status: 'failed'` + `error_message` from `scheduler.ts` on a real publish failure once LinkedIn is wired up — the `failed` state is already fully supported in the Marketing/Calendar UI, it just has no code path producing it yet.

@@ -81,4 +81,4 @@ RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain
 - Last completed: Session 2 — Auth + Projects (Google OAuth2 sign-in/logout gating the whole app shell; projects CRUD — create/list/select-active, active project as client-side app state)
 - Next up: Session 3 — Tasks (tasks CRUD scoped to the active project, per docs/PLAN.md Day 3; no schema changes needed, table + RLS already exist)
 - Live URL: [glampro.netlify.app](https://glampro.netlify.app/)
-- Known issues / TODO: a temporary Supabase Personal Access Token was generated this session for direct Management API debugging access — confirm with the user it's been revoked (dashboard → Account → Access Tokens) before assuming it's gone. No other known issues.
+- Known issues / TODO: none. (The temporary Supabase Personal Access Token generated this session for Management API debugging access was confirmed revoked by the user before session close.)

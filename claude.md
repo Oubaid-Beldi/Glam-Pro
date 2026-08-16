@@ -74,12 +74,13 @@ RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain
 - docs/sessions/01-foundation.md
 - docs/sessions/02-auth-projects.md
 - docs/sessions/03-tasks.md
+- docs/sessions/04-notes.md
 
 ## Current status
 
 *(overwrite this section each session — it's the single source of truth for "where are we")*
 
-- Last completed: Session 3 — Tasks (tasks CRUD scoped to the active project — create/list/edit/delete, status + priority as colored badges, filterable by status/priority and sortable by newest/due date/priority; no Kanban, per plan)
-- Next up: Session 4 — Notes (notes CRUD scoped to the active project — title + content, per docs/PLAN.md Day 4; no schema changes needed, table + RLS already exist)
+- Last completed: Session 4 — Notes (notes CRUD scoped to the active project — title + content, create/list/edit/delete; no filter/sort toolbar since notes have no status/priority/date fields, per docs/PLAN.md Day 4)
+- Next up: Session 5 — AI post generation (Netlify Function calling Groq for 1-3 LinkedIn draft posts, per docs/PLAN.md Day 5)
 - Live URL: [glampro.netlify.app](https://glampro.netlify.app/)
-- Known issues / TODO: none. (Session 3's Tasks page was verified live end-to-end — user signed in with Google, assistant then drove a real create → display → delete round-trip against the live site and the real Supabase backend; see docs/sessions/03-tasks.md.)
+- Known issues / TODO: Session 4's Notes page was verified locally end-to-end (real Supabase backend via a temporary debug harness, fully reverted) and the live deploy was confirmed to be serving the new build (bundle-content check + health check), but **a real authenticated create/edit/delete round-trip against the live site was not performed** — the user didn't hand back control before session 5 started. Do this the next time the user is available to sign in live; see docs/sessions/04-notes.md's deviations section.

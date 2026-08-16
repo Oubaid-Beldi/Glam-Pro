@@ -75,12 +75,16 @@ RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain
 - docs/sessions/02-auth-projects.md
 - docs/sessions/03-tasks.md
 - docs/sessions/04-notes.md
+- docs/sessions/05-ai-generation.md
 
 ## Current status
 
 *(overwrite this section each session — it's the single source of truth for "where are we")*
 
-- Last completed: Session 4 — Notes (notes CRUD scoped to the active project — title + content, create/list/edit/delete; no filter/sort toolbar since notes have no status/priority/date fields, per docs/PLAN.md Day 4)
-- Next up: Session 5 — AI post generation (Netlify Function calling Groq for 1-3 LinkedIn draft posts, per docs/PLAN.md Day 5)
+- Last completed: Session 5 — AI post generation (`netlify/functions/generate-posts.ts` calling Groq, model `llama-3.3-70b-versatile`, for 1-3 LinkedIn draft posts; Marketing page: objective → generate → inline edit → validate → saves as a `draft` post row with full `ai_variants`, per docs/PLAN.md Day 5)
+- Next up: Session 6 — Scheduling + Calendar (date-time picker on saved drafts, calendar/filtered-list view of scheduled/published/pending/failed, hourly Scheduled Function for due posts, per docs/PLAN.md Day 6)
 - Live URL: [glampro.netlify.app](https://glampro.netlify.app/)
-- Known issues / TODO: Session 4's Notes page was verified locally end-to-end (real Supabase backend via a temporary debug harness, fully reverted) and the live deploy was confirmed to be serving the new build (bundle-content check + health check), but **a real authenticated create/edit/delete round-trip against the live site was not performed** — the user didn't hand back control before session 5 started. Do this the next time the user is available to sign in live; see docs/sessions/04-notes.md's deviations section.
+- Known issues / TODO:
+  - **Fixed this session, worth remembering:** production's `SUPABASE_URL` env var had carried a stray `/rest/v1/` suffix since session 1 (despite session 1's log claiming it was corrected) — undetected for 4 sessions because no server-side function code touched Supabase until this session's `generate-posts.ts`. Corrected via `netlify env:set SUPABASE_URL "https://ihgfkcnorylegchoddxx.supabase.co" --context production` (+ `dev` context for local testing) and redeployed. If a *new* server-side function starts throwing odd Supabase errors, this class of bug (stale/wrong env var, not app code) is worth ruling out early.
+  - Session 4's Notes page still has an unconfirmed real authenticated live round-trip (see docs/sessions/04-notes.md) — low priority, since Notes never calls a Netlify Function and so was never actually affected by the `SUPABASE_URL` bug above, but worth closing out opportunistically.
+  - Session 5's AI generation flow **was** fully verified live end-to-end (real Groq calls, real `posts` table writes, confirmed persisting across reload) — see docs/sessions/05-ai-generation.md.

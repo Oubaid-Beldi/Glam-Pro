@@ -5,7 +5,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -81,7 +80,7 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel className="flex flex-col gap-0.5 px-2 py-1.5">
+          <div className="flex flex-col gap-0.5 px-2 py-1.5">
             <span className="truncate text-sm font-medium text-foreground">
               {displayName}
             </span>
@@ -90,7 +89,7 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                 {user.email}
               </span>
             )}
-          </DropdownMenuLabel>
+          </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => signOut()}>
             <LogOut className="h-4 w-4" />

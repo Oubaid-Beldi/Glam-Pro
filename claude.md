@@ -75,7 +75,7 @@ RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain
 
 *(overwrite this section each session — it's the single source of truth for "where are we")*
 
-- Last completed: — (repo not started yet)
-- Next up: Session 1 — Foundation & live pipeline
-- Live URL: —
-- Known issues / TODO: —
+- Last completed: Session 1 — Foundation & live pipeline
+- Next up: Session 2 — Auth + Projects (Google OAuth2 sign-in, projects CRUD)
+- Live URL: https://glowing-sundae-86a505.netlify.app/
+- Known issues / TODO: no Supabase client wired into the frontend yet (session 2); no auth; no CRUD; see docs/sessions/01-foundation.md for details

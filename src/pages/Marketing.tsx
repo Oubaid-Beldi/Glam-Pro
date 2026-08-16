@@ -1,42 +1,129 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Megaphone, FolderKanban, Sparkles, Check } from 'lucide-react'
+import { Megaphone, FolderKanban, Sparkles, Check, CalendarClock, X } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth-context'
 import { useProjects } from '@/lib/projects-context'
-import { usePosts, type PostStatus } from '@/lib/use-posts'
+import { usePosts, type Post } from '@/lib/use-posts'
+import {
+  STATUS_LABEL,
+  STATUS_BADGE_CLASS,
+  formatDate,
+  formatDateTime,
+  toDateTimeLocalValue,
+  nowDateTimeLocalValue,
+} from '@/lib/post-format'
 import { cn } from '@/lib/utils'
 
-const STATUS_LABEL: Record<PostStatus, string> = {
-  draft: 'Draft',
-  scheduled: 'Scheduled',
-  published: 'Published',
-  failed: 'Failed',
-}
+function SchedulePostControl({
+  post,
+  onSchedule,
+  onUnschedule,
+}: {
+  post: Post
+  onSchedule: (id: string, scheduledAt: string) => Promise<{ error: string | null }>
+  onUnschedule: (id: string) => Promise<{ error: string | null }>
+}) {
+  const [value, setValue] = useState(
+    post.scheduled_at ? toDateTimeLocalValue(post.scheduled_at) : '',
+  )
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-const STATUS_BADGE_CLASS: Record<PostStatus, string> = {
-  draft: 'bg-muted text-muted-foreground',
-  scheduled: 'bg-info/10 text-info',
-  published: 'bg-success/10 text-success',
-  failed: 'bg-destructive/10 text-destructive',
-}
+  if (post.status === 'published') {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Published {post.published_at ? formatDateTime(post.published_at) : ''}
+      </p>
+    )
+  }
 
-function formatDate(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  if (post.status === 'failed') {
+    return (
+      <p className="text-sm text-destructive">
+        Failed{post.error_message ? `: ${post.error_message}` : ''}
+      </p>
+    )
+  }
+
+  async function handleSchedule() {
+    if (!value) return
+    setSaving(true)
+    setError(null)
+    const isoValue = new Date(value).toISOString()
+    const { error } = await onSchedule(post.id, isoValue)
+    setSaving(false)
+    if (error) setError(error)
+  }
+
+  async function handleUnschedule() {
+    setSaving(true)
+    setError(null)
+    const { error } = await onUnschedule(post.id)
+    setSaving(false)
+    if (error) setError(error)
+    else setValue('')
+  }
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-border pt-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          type="datetime-local"
+          className="h-11 w-auto md:h-8"
+          min={nowDateTimeLocalValue()}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={saving || !value}
+          onClick={handleSchedule}
+          className="h-11 md:h-8"
+        >
+          <CalendarClock className="h-4 w-4" />
+          {post.status === 'scheduled' ? 'Reschedule' : 'Schedule'}
+        </Button>
+        {post.status === 'scheduled' && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={saving}
+            onClick={handleUnschedule}
+            className="h-11 md:h-8"
+          >
+            <X className="h-4 w-4" />
+            Unschedule
+          </Button>
+        )}
+      </div>
+      {post.status === 'scheduled' && post.scheduled_at && (
+        <p className="text-sm text-info">Scheduled for {formatDateTime(post.scheduled_at)}</p>
+      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  )
 }
 
 export default function Marketing() {
   const { session } = useAuth()
   const { activeProject, loading: projectsLoading } = useProjects()
-  const { posts, loading: postsLoading, error: postsError, createPost } = usePosts(
-    activeProject?.id ?? null,
-  )
+  const {
+    posts,
+    loading: postsLoading,
+    error: postsError,
+    createPost,
+    schedulePost,
+    unschedulePost,
+  } = usePosts(activeProject?.id ?? null)
 
   const [objective, setObjective] = useState('')
   const [generating, setGenerating] = useState(false)
@@ -247,19 +334,29 @@ export default function Marketing() {
         <div className="flex flex-col gap-3">
           {posts.map((post) => (
             <Card key={post.id} className="rounded-xl shadow-sm">
-              <CardContent className="flex flex-col gap-1.5 p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium text-foreground wrap-break-word">{post.objective}</p>
-                  <Badge className={cn('border-transparent', STATUS_BADGE_CLASS[post.status])}>
-                    {STATUS_LABEL[post.status]}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(post.created_at)}
-                  </span>
+              <CardContent className="flex flex-col gap-3 p-4">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-foreground wrap-break-word">{post.objective}</p>
+                    <Badge className={cn('border-transparent', STATUS_BADGE_CLASS[post.status])}>
+                      {STATUS_LABEL[post.status]}
+                    </Badge>
+                    <Badge variant="outline" className="capitalize">
+                      {post.platform}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(post.created_at)}
+                    </span>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground wrap-break-word">
+                    {post.content}
+                  </p>
                 </div>
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground wrap-break-word">
-                  {post.content}
-                </p>
+                <SchedulePostControl
+                  post={post}
+                  onSchedule={schedulePost}
+                  onUnschedule={unschedulePost}
+                />
               </CardContent>
             </Card>
           ))}

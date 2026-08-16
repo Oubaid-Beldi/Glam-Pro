@@ -6,6 +6,9 @@
 [functions]
   node_bundler = "esbuild"
 
+[functions."scheduler"]
+  schedule = "@hourly"
+
 [[redirects]]
   from = "/api/generate-posts"
   to = "/.netlify/functions/generate-posts"

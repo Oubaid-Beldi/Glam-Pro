@@ -72,5 +72,29 @@ export function usePosts(projectId: string | null) {
     return { error: null }
   }
 
-  return { posts, loading, error, refresh, createPost }
+  async function schedulePost(id: string, scheduledAt: string) {
+    const { data, error } = await supabase
+      .from('posts')
+      .update({ scheduled_at: scheduledAt, status: 'scheduled' })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) return { error: error.message }
+    setPosts((prev) => prev.map((p) => (p.id === id ? data : p)))
+    return { error: null }
+  }
+
+  async function unschedulePost(id: string) {
+    const { data, error } = await supabase
+      .from('posts')
+      .update({ scheduled_at: null, status: 'draft' })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) return { error: error.message }
+    setPosts((prev) => prev.map((p) => (p.id === id ? data : p)))
+    return { error: null }
+  }
+
+  return { posts, loading, error, refresh, createPost, schedulePost, unschedulePost }
 }

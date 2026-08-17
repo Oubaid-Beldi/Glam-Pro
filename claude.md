@@ -77,16 +77,18 @@ RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain
 - docs/sessions/04-notes.md
 - docs/sessions/05-ai-generation.md
 - docs/sessions/06-scheduling-calendar.md
+- docs/sessions/07-architecture-refactor.md
 
 ## Current status
 
 *(overwrite this section each session — it's the single source of truth for "where are we")*
 
-- Last completed: Session 6 — Scheduling + Calendar (`schedulePost`/`unschedulePost` on posts, datetime-local picker + platform badge on Marketing's saved posts, Calendar rebuilt as a project-scoped status-grouped filtered list, `netlify/functions/scheduler.ts` hourly Scheduled Function flipping due `scheduled` posts to `published` via the service role client, per docs/PLAN.md Day 6)
-- Next up: Session 7 — LinkedIn auto-publish (stretch goal, manual-fallback if it doesn't land in time) + final polish pass, per docs/PLAN.md Day 7
+- Last completed: Session 7 — Architecture refactor (pure reorganization, no behavior change: `netlify/functions/` flattened logic split into a layered `server/` tree — `routes/ -> controllers/ -> services/ -> integrations/` + shared `types/` — imported by two thin function entrypoints, `netlify/functions/api.ts` and `scheduler.ts`; `generate-posts.ts` as a standalone function was removed, its logic folded into `api.ts` via `server/routes/posts.routes.ts`. See docs/sessions/07-architecture-refactor.md for the full new folder structure and the deviations from the brief (three Supabase client factories instead of one, to preserve the RLS-scoped auth check; route path kept as `/generate-posts` not `/posts/generate`, to preserve the exact frontend-facing HTTP path). New `npm run typecheck:server` script + `tsconfig.server.json` for standalone typechecking those folders, same as before — still not part of `tsc -b`/`npm run build`.)
+- Next up: Session 8 — LinkedIn auto-publish (stretch goal, manual-fallback if it doesn't land in time) + final polish pass, per docs/PLAN.md Day 7. Follow session 7's layering for any new code — see "What session 8 should do first" in docs/sessions/07-architecture-refactor.md.
 - Live URL: [glampro.netlify.app](https://glampro.netlify.app/)
 - Known issues / TODO:
-  - **New env var this session:** `SUPABASE_SERVICE_ROLE_KEY` is now set in Netlify (production + dev contexts) — needed by `scheduler.ts` to bypass RLS for its cross-user cron job. See docs/sessions/06-scheduling-calendar.md for how it was obtained (auto-mode blocked embedding the Supabase Management API PAT in shell commands; user fetched the key from the Supabase dashboard directly instead).
+  - Session 7's refactor was verified via `npm run typecheck:server`, `npm run build`, `npm run lint` (all clean) and a line-by-line read of old vs. new logic — but **not** re-verified with a live authenticated round-trip through `/api/generate-posts` post-deploy (would need an interactive Google sign-in handoff). Worth closing out opportunistically at the start of session 8, before adding new LinkedIn code on top.
+  - **New env var this session:** none — session 7 was code organization only, no env var changes.
   - Session 4's Notes page still has an unconfirmed real authenticated live round-trip (see docs/sessions/04-notes.md) — low priority, still not affected by any bug found so far, but worth closing out opportunistically.
   - Session 5's AI generation and session 6's scheduling/calendar flows **were both** fully verified live end-to-end against the real account — see docs/sessions/05-ai-generation.md and docs/sessions/06-scheduling-calendar.md. Session 6 also verified the actual `scheduler.ts` function logic against real production data (not just the UI): a real post was scheduled, then found "due" and correctly flipped to `published` when the function ran. The one thing not observed live is the hourly cron *trigger* itself firing unattended — not practical to wait out in-session; it runs automatically going forward.
-  - Session 7 should set `status: 'failed'` + `error_message` from `scheduler.ts` on a real publish failure once LinkedIn is wired up — the `failed` state is already fully supported in the Marketing/Calendar UI, it just has no code path producing it yet.
+  - Session 8 should set `status: 'failed'` + `error_message` from the scheduler service on a real publish failure once LinkedIn is wired up — the `failed` state is already fully supported in the Marketing/Calendar UI, it just has no code path producing it yet.

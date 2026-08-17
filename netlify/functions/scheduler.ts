@@ -1,30 +1,18 @@
-import { createClient } from '@supabase/supabase-js'
+import { publishDuePosts } from '../../server/services/scheduler.service'
 
 export const handler = async () => {
-  const supabaseUrl = process.env.SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const result = await publishDuePosts()
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  if (result.status === 'config_error') {
     console.error('scheduler: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
     return { statusCode: 500, body: JSON.stringify({ error: 'Server misconfigured.' }) }
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey)
-  const now = new Date().toISOString()
-
-  const { data, error } = await supabase
-    .from('posts')
-    .update({ status: 'published', published_at: now })
-    .eq('status', 'scheduled')
-    .lte('scheduled_at', now)
-    .select('id')
-
-  if (error) {
-    console.error('scheduler: failed to publish due posts:', error.message)
-    return { statusCode: 500, body: JSON.stringify({ error: error.message }) }
+  if (result.status === 'query_error') {
+    console.error('scheduler: failed to publish due posts:', result.message)
+    return { statusCode: 500, body: JSON.stringify({ error: result.message }) }
   }
 
-  const publishedCount = data?.length ?? 0
-  console.log(`scheduler: published ${publishedCount} post(s) due as of ${now}`)
-  return { statusCode: 200, body: JSON.stringify({ published: publishedCount }) }
+  console.log(`scheduler: published ${result.publishedCount} post(s) due as of ${result.asOf}`)
+  return { statusCode: 200, body: JSON.stringify({ published: result.publishedCount }) }
 }

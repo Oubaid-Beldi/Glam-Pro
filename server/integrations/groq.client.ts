@@ -1,4 +1,8 @@
-const GROQ_MODEL = 'llama-3.3-70b-versatile'
+// llama-3.3-70b-versatile was removed from Groq's catalog (confirmed via a live
+// /openai/v1/models check — 404 model_not_found). openai/gpt-oss-120b is the closest
+// available replacement: comparable scale, still supports JSON mode. See
+// docs/sessions/07-architecture-refactor.md for the verification that led here.
+const GROQ_MODEL = 'openai/gpt-oss-120b'
 const GROQ_TIMEOUT_MS = 20_000
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
 

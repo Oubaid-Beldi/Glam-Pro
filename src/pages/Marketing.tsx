@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Megaphone, FolderKanban, Sparkles, Check, CalendarClock, X } from 'lucide-react'
+import { Megaphone, FolderKanban, Sparkles, Check, CalendarClock, X, Mic, Square, Loader2 } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth-context'
 import { useProjects } from '@/lib/projects-context'
 import { usePosts, type Post } from '@/lib/use-posts'
+import { useVoiceTranscription } from '@/lib/use-voice-transcription'
 import {
   STATUS_LABEL,
   STATUS_BADGE_CLASS,
@@ -108,6 +109,68 @@ function SchedulePostControl({
       {post.status === 'scheduled' && post.scheduled_at && (
         <p className="text-sm text-info">Scheduled for {formatDateTime(post.scheduled_at)}</p>
       )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  )
+}
+
+function VoiceRecorderControl({
+  accessToken,
+  onTranscript,
+}: {
+  accessToken: string | null
+  onTranscript: (text: string) => void
+}) {
+  const { state, error, elapsedSeconds, maxSeconds, start, stop, cancel } = useVoiceTranscription(
+    accessToken,
+    onTranscript,
+  )
+
+  return (
+    <div className="flex flex-col items-end gap-1.5">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {state === 'idle' && (
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            aria-label="Record objective"
+            onClick={start}
+            className="h-11 w-11 md:h-8 md:w-8"
+          >
+            <Mic className="h-4 w-4" />
+          </Button>
+        )}
+
+        {state === 'recording' && (
+          <>
+            <span className="text-sm text-muted-foreground">
+              Recording… {elapsedSeconds}s / {maxSeconds}s
+            </span>
+            <Button
+              type="button"
+              size="icon"
+              variant="destructive"
+              aria-label="Stop recording"
+              onClick={stop}
+              className="h-11 w-11 animate-pulse md:h-8 md:w-8"
+            >
+              <Square className="h-4 w-4" />
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={cancel} className="h-11 md:h-8">
+              <X className="h-4 w-4" />
+              Cancel
+            </Button>
+          </>
+        )}
+
+        {state === 'transcribing' && (
+          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Transcribing…
+          </span>
+        )}
+      </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   )
@@ -234,7 +297,13 @@ export default function Marketing() {
         <CardContent>
           <form onSubmit={handleGenerate} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="objective">Objective</Label>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <Label htmlFor="objective">Objective</Label>
+                <VoiceRecorderControl
+                  accessToken={session?.access_token ?? null}
+                  onTranscript={setObjective}
+                />
+              </div>
               <Textarea
                 id="objective"
                 className="min-h-20"

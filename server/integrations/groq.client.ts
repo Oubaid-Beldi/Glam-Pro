@@ -6,6 +6,10 @@ const GROQ_MODEL = 'openai/gpt-oss-120b'
 const GROQ_TIMEOUT_MS = 20_000
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
 
+const GROQ_TRANSCRIBE_MODEL = 'whisper-large-v3-turbo'
+const GROQ_TRANSCRIBE_TIMEOUT_MS = 20_000
+const GROQ_TRANSCRIBE_ENDPOINT = 'https://api.groq.com/openai/v1/audio/transcriptions'
+
 export type GroqCallError =
   | { kind: 'timeout' }
   | { kind: 'unreachable' }
@@ -62,4 +66,55 @@ export async function callGroq(apiKey: string, systemPrompt: string, userPrompt:
   }
 
   return { ok: true, content: rawContent }
+}
+
+export type TranscribeAudioResult = { ok: true; transcript: string } | { ok: false; error: GroqCallError }
+
+function extensionForMimeType(mimeType: string): string {
+  const subtype = mimeType.split('/')[1]?.split(';')[0]
+  return subtype || 'webm'
+}
+
+export async function transcribeAudio(
+  apiKey: string,
+  audio: Buffer,
+  mimeType: string,
+): Promise<TranscribeAudioResult> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), GROQ_TRANSCRIBE_TIMEOUT_MS)
+
+  const form = new FormData()
+  form.append('file', new Blob([audio], { type: mimeType }), `recording.${extensionForMimeType(mimeType)}`)
+  form.append('model', GROQ_TRANSCRIBE_MODEL)
+
+  let response: Response
+  try {
+    response = await fetch(GROQ_TRANSCRIBE_ENDPOINT, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
+      signal: controller.signal,
+    })
+  } catch (err) {
+    clearTimeout(timeout)
+    const timedOut = err instanceof Error && err.name === 'AbortError'
+    return { ok: false, error: { kind: timedOut ? 'timeout' : 'unreachable' } }
+  }
+  clearTimeout(timeout)
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      return { ok: false, error: { kind: 'rate_limited' } }
+    }
+    return { ok: false, error: { kind: 'http_error' } }
+  }
+
+  const result = (await response.json()) as { text?: string }
+  const transcript = result.text?.trim()
+
+  if (!transcript) {
+    return { ok: false, error: { kind: 'empty_response' } }
+  }
+
+  return { ok: true, transcript }
 }

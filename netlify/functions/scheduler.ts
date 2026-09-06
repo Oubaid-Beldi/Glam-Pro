@@ -13,6 +13,8 @@ export const handler = async () => {
     return { statusCode: 500, body: JSON.stringify({ error: result.message }) }
   }
 
-  console.log(`scheduler: published ${result.publishedCount} post(s) due as of ${result.asOf}`)
-  return { statusCode: 200, body: JSON.stringify({ published: result.publishedCount }) }
+  console.log(
+    `scheduler: published ${result.publishedCount} post(s), ${result.failedCount} failed, due as of ${result.asOf}`,
+  )
+  return { statusCode: 200, body: JSON.stringify({ published: result.publishedCount, failed: result.failedCount }) }
 }

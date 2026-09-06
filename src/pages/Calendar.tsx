@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Calendar as CalendarIcon, FolderKanban, Megaphone } from 'lucide-react'
+import { Calendar as CalendarIcon, FolderKanban, Megaphone, Loader2 } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { PostActions } from '@/components/PostActions'
 import { useProjects } from '@/lib/projects-context'
 import { usePosts, type Post, type PostStatus } from '@/lib/use-posts'
 import { STATUS_LABEL, STATUS_BADGE_CLASS, formatDate, formatDateTime } from '@/lib/post-format'
@@ -55,7 +56,7 @@ const SECTIONS: Section[] = [
 
 export default function Calendar() {
   const { activeProject, loading: projectsLoading } = useProjects()
-  const { posts, loading, error } = usePosts(activeProject?.id ?? null)
+  const { posts, loading, error, markPublished } = usePosts(activeProject?.id ?? null)
 
   const grouped = useMemo(() => {
     const byStatus = new Map<PostStatus, Post[]>()
@@ -119,7 +120,12 @@ export default function Calendar() {
         </div>
       )}
 
-      {loading && <p className="text-sm text-muted-foreground">Loading posts…</p>}
+      {loading && (
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Loading posts…
+        </p>
+      )}
 
       {!loading &&
         posts.length > 0 &&
@@ -170,6 +176,9 @@ export default function Calendar() {
                           </p>
                           {post.status === 'failed' && post.error_message && (
                             <p className="text-sm text-destructive">{post.error_message}</p>
+                          )}
+                          {(post.status === 'scheduled' || post.status === 'failed') && (
+                            <PostActions post={post} onMarkPublished={markPublished} />
                           )}
                         </CardContent>
                       </Card>

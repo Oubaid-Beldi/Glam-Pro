@@ -119,3 +119,25 @@ create policy "posts: owner full access" on posts
   ) with check (
     exists (select 1 from projects p where p.id = posts.project_id and p.owner_id = auth.uid())
   );
+
+-- 6. linkedin_accounts --------------------------------------------------------
+-- One connected LinkedIn account per user. access_token is stored in plaintext —
+-- acceptable for this MVP's scope (RLS-scoped to the owner, only ever read server-side
+-- by the service-role client), same simplicity level as the rest of this schema.
+-- No refresh_token: standard 3-legged LinkedIn OAuth tokens aren't refreshable unless
+-- the app is separately approved for LinkedIn's "Programmatic Refresh Tokens" product,
+-- which is out of scope here — an expired connection requires the user to reconnect.
+create table if not exists linkedin_accounts (
+  owner_id uuid primary key references profiles(id) on delete cascade,
+  access_token text not null,
+  member_urn text not null,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table linkedin_accounts enable row level security;
+
+drop policy if exists "linkedin_accounts: owner full access" on linkedin_accounts;
+create policy "linkedin_accounts: owner full access" on linkedin_accounts
+  for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());

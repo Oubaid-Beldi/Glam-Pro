@@ -1,6 +1,17 @@
-import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
-import { Megaphone, FolderKanban, Sparkles, Check, CalendarClock, X, Mic, Square, Loader2 } from 'lucide-react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import {
+  Megaphone,
+  FolderKanban,
+  Sparkles,
+  Check,
+  CalendarClock,
+  X,
+  Mic,
+  Square,
+  Loader2,
+  Share2,
+} from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +22,8 @@ import { useAuth } from '@/lib/auth-context'
 import { useProjects } from '@/lib/projects-context'
 import { usePosts, type Post } from '@/lib/use-posts'
 import { useVoiceTranscription } from '@/lib/use-voice-transcription'
+import { useLinkedInConnection } from '@/lib/use-linkedin-connection'
+import { PostActions } from '@/components/PostActions'
 import {
   STATUS_LABEL,
   STATUS_BADGE_CLASS,
@@ -176,6 +189,63 @@ function VoiceRecorderControl({
   )
 }
 
+function LinkedInConnectionCard({ accessToken }: { accessToken: string | null }) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { connected, loading, error, connect, refresh } = useLinkedInConnection(accessToken)
+  const redirectResult = searchParams.get('linkedin')
+
+  useEffect(() => {
+    if (!redirectResult) return
+    refresh()
+    const next = new URLSearchParams(searchParams)
+    next.delete('linkedin')
+    setSearchParams(next, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [redirectResult])
+
+  return (
+    <Card className="rounded-xl shadow-sm">
+      <CardContent className="flex flex-col gap-3 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Share2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">LinkedIn account</span>
+            {!loading && (
+              <Badge
+                className={cn(
+                  'border-transparent',
+                  connected ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning',
+                )}
+              >
+                {connected ? 'Connected' : 'Not connected'}
+              </Badge>
+            )}
+          </div>
+          <Button type="button" size="sm" variant="outline" onClick={connect} className="h-11 md:h-8">
+            <Share2 className="h-4 w-4" />
+            {connected ? 'Reconnect' : 'Connect LinkedIn'}
+          </Button>
+        </div>
+        {redirectResult === 'connected' && (
+          <p className="text-sm text-success">LinkedIn connected — scheduled posts will auto-publish.</p>
+        )}
+        {redirectResult === 'error' && (
+          <p className="text-sm text-destructive">
+            Could not connect your LinkedIn account. Please try again.
+          </p>
+        )}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        {!connected && !loading && !redirectResult && (
+          <p className="text-sm text-muted-foreground">
+            Connect LinkedIn so scheduled posts publish automatically, or use "Copy content" +
+            "Mark as published" below to post manually.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function Marketing() {
   const { session } = useAuth()
   const { activeProject, loading: projectsLoading } = useProjects()
@@ -186,6 +256,7 @@ export default function Marketing() {
     createPost,
     schedulePost,
     unschedulePost,
+    markPublished,
   } = usePosts(activeProject?.id ?? null)
 
   const [objective, setObjective] = useState('')
@@ -290,6 +361,8 @@ export default function Marketing() {
         </p>
       </div>
 
+      <LinkedInConnectionCard accessToken={session?.access_token ?? null} />
+
       <Card className="rounded-xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Generate drafts</CardTitle>
@@ -382,10 +455,15 @@ export default function Marketing() {
       )}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          {postsLoading
-            ? 'Loading saved posts…'
-            : `${posts.length} saved post${posts.length === 1 ? '' : 's'}`}
+        <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          {postsLoading ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Loading saved posts…
+            </>
+          ) : (
+            `${posts.length} saved post${posts.length === 1 ? '' : 's'}`
+          )}
         </h2>
 
         {postsError && <p className="text-sm text-destructive">{postsError}</p>}
@@ -421,6 +499,7 @@ export default function Marketing() {
                     {post.content}
                   </p>
                 </div>
+                <PostActions post={post} onMarkPublished={markPublished} />
                 <SchedulePostControl
                   post={post}
                   onSchedule={schedulePost}

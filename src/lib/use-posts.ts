@@ -96,5 +96,20 @@ export function usePosts(projectId: string | null) {
     return { error: null }
   }
 
-  return { posts, loading, error, refresh, createPost, schedulePost, unschedulePost }
+  // Manual override for when auto-publish hasn't run yet, failed, or the user posted
+  // to LinkedIn themselves with "Copy content" — keeps the workflow fully usable even
+  // without a live LinkedIn connection.
+  async function markPublished(id: string) {
+    const { data, error } = await supabase
+      .from('posts')
+      .update({ status: 'published', published_at: new Date().toISOString(), error_message: null })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) return { error: error.message }
+    setPosts((prev) => prev.map((p) => (p.id === id ? data : p)))
+    return { error: null }
+  }
+
+  return { posts, loading, error, refresh, createPost, schedulePost, unschedulePost, markPublished }
 }

@@ -68,6 +68,8 @@ export async function exchangeCodeForToken(params: {
   clearTimeout(timeout)
 
   if (!response.ok) {
+    const bodyText = await response.text().catch(() => '<unreadable>')
+    console.error('linkedin exchangeCodeForToken: non-ok response', response.status, bodyText)
     if (response.status === 429) return { ok: false, error: { kind: 'rate_limited' } }
     if (response.status === 400 || response.status === 401) return { ok: false, error: { kind: 'unauthorized' } }
     return { ok: false, error: { kind: 'http_error' } }

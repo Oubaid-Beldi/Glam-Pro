@@ -84,18 +84,19 @@ RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain
 - docs/sessions/07-architecture-refactor.md
 - docs/sessions/08-voice-input.md
 - docs/sessions/09-linkedin-polish.md
+- docs/sessions/10-dashboard.md
 
 ## Current status
 
 *(overwrite this section each session — it's the single source of truth for "where are we")*
 
-**MVP complete — LinkedIn auto-publish: working (personal profile), plus a manual fallback.** This was the last planned session (docs/PLAN.md's 7-day plan, sessions 1-9). All core + stretch features from the plan have shipped.
+**MVP complete, plus the Dashboard filled in.** All core + stretch features from `docs/PLAN.md`'s 7-day plan shipped by session 9; this session (10) filled in the one placeholder the plan never scoped — the Dashboard nav item, which had shown "Coming soon" since session 1.
 
-- Last completed: Session 9 — LinkedIn OAuth connect + auto-publish, following session 7's layering (`server/integrations/linkedin.client.ts` -> `server/services/linkedin.service.ts` -> `server/routes/linkedin.routes.ts` + `server/controllers/linkedin.controller.ts`). `scheduler.service.ts` now calls `publishToLinkedIn()` per due post instead of just flipping status. **Confirmed live end-to-end**: connected a real LinkedIn account, scheduled a real post, the real `@hourly` Netlify Scheduled Function picked it up and published it to the user's LinkedIn profile automatically (verified both in the `posts` table — `status: 'published'`, `published_at` set, no `error_message` — and visually on the live LinkedIn feed). Also shipped: a "Connect LinkedIn" card on Marketing showing connection status, and manual "Copy content" / "Mark as published" fallback actions on every scheduled/failed post in both Marketing and Calendar, so the app stays fully usable even without a live LinkedIn connection. Loading-spinner polish added to Marketing/Calendar's post lists. See docs/sessions/09-linkedin-polish.md for the full breakdown, including three real live-debugging incidents worth reading before touching this integration again.
-- Next up: nothing planned — this was the final session. If picked up again: (1) Company Page posting via LinkedIn's Community Management API (needs a review-gated LinkedIn application, not self-serve — see the stack section above), (2) token refresh before the 60-day expiry forces a reconnect, (3) the open items below.
+- Last completed: Session 10 — built the real Dashboard (`src/pages/Dashboard.tsx`), project-scoped like every other page. Read-only: task counts by status (todo/doing/done), total note count, post status breakdown (draft/scheduled/published/failed) using the existing `success`/`warning`/`error`/`info` design-system colors, and the next 5 upcoming scheduled posts sorted ascending by `scheduled_at`. Reuses the existing `useTasks`/`useNotes`/`usePosts` hooks and `post-format.ts`'s `STATUS_LABEL`/`formatDateTime` — no new tables, endpoints, or env vars. Friendly empty state when a project has zero tasks/notes/posts. See docs/sessions/10-dashboard.md.
+- Next up: nothing specifically planned. If picked up again: (1) Company Page posting via LinkedIn's Community Management API (needs a review-gated LinkedIn application, not self-serve — see the stack section above), (2) LinkedIn token refresh before the 60-day expiry forces a reconnect, (3) the open items below.
 - Live URL: [glampro.netlify.app](https://glampro.netlify.app/)
 - Known issues / TODO:
   - LinkedIn auto-publish only posts to the connected **member's personal profile**, never a Company Page — this is a hard LinkedIn platform/product limitation, not a bug (see the stack section above).
   - No LinkedIn token refresh — access tokens last ~60 days, then the user must click "Connect LinkedIn" again from Marketing.
-  - When setting `LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET` in Netlify (or after changing them), **redeploy** before testing — a warm function container can keep serving the old value from memory even after the env var is updated, which cost real debugging time this session (see docs/sessions/09-linkedin-polish.md).
+  - When setting `LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET` in Netlify (or after changing them), **redeploy** before testing — a warm function container can keep serving the old value from memory even after the env var is updated (see docs/sessions/09-linkedin-polish.md).
   - Everything from session 7's "Known issues" (Notes' live round-trip, the `SUPABASE_SERVICE_ROLE_KEY` rotation) remains open — see docs/sessions/07-architecture-refactor.md.

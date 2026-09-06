@@ -19,7 +19,7 @@ Solo dev, context gets cleared between sessions on purpose to avoid overload. Ev
 - **AI:** Groq API, OpenAI-compatible client, model `openai/gpt-oss-120b` (`llama-3.3-70b-versatile` was removed from Groq's catalog — see docs/sessions/07-architecture-refactor.md), key in `GROQ_API_KEY`
 - **Scheduler:** Netlify Scheduled Function, `@hourly` cron, checks Supabase for due posts
 - **Voice input (as of session 8):** speech-to-text for the AI-generation objective field, via Groq Whisper (`whisper-large-v3-turbo`) — same `GROQ_API_KEY`, no new provider or account. Browser records audio with MediaRecorder (60s cap, cancel-while-recording), sends it base64-encoded to `POST /api/posts/transcribe`, backend transcribes it and returns plain text that fills the objective field for the user to review/edit before generating — voice never skips straight to AI generation. See docs/sessions/08-voice-input.md.
-- **Social publish:** LinkedIn "Share on LinkedIn" product / `w_member_social` scope — stretch goal (session 9), has a manual fallback
+- **Social publish (as of session 9):** LinkedIn "Share on LinkedIn" + "Sign In with LinkedIn using OpenID Connect" products, `openid profile w_member_social` scope, `LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET`. **Working, confirmed live** — auto-publishes to the connected LinkedIn **member's personal profile**, not a Company Page. Posting as a Page requires LinkedIn's separately-reviewed Community Management API (`w_organization_social`), which is out of scope (no self-serve approval path). OAuth flow: `GET /auth/linkedin/connect` (top-level redirect, signed state) → LinkedIn consent → `GET /auth/linkedin/callback` → stores the token in `linkedin_accounts`. `server/integrations/linkedin.client.ts` -> `server/services/linkedin.service.ts` -> `server/routes/linkedin.routes.ts` + `server/controllers/linkedin.controller.ts`, following session 7's layering. `scheduler.service.ts` calls `publishToLinkedIn()` per due post. Manual "Copy content" / "Mark as published" fallback buttons also ship on every scheduled/failed post (Marketing + Calendar), so the workflow stays usable without a live connection or after a 60-day token expiry (no refresh token — reconnect required). See docs/sessions/09-linkedin-polish.md.
 - **Hosting/CI:** Netlify only, auto-deploy from GitHub `main`
 - **Instagram:** cut entirely, out of scope for this build
 
@@ -56,9 +56,12 @@ posts (id uuid pk, project_id uuid fk->projects,
        published_at timestamptz,
        error_message text,
        created_at timestamptz)
+
+linkedin_accounts (owner_id uuid pk fk->profiles, access_token text, member_urn text,
+       expires_at timestamptz, created_at timestamptz, updated_at timestamptz)
 ```
 
-RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain. Reuse the same policy pattern everywhere.
+RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain (posts/tasks/notes) or `owner_id` directly (linkedin_accounts). Reuse the same policy pattern everywhere.
 
 ## Conventions
 
@@ -80,14 +83,19 @@ RLS on every table, scoped to `auth.uid()` via `owner_id` → `project_id` chain
 - docs/sessions/06-scheduling-calendar.md
 - docs/sessions/07-architecture-refactor.md
 - docs/sessions/08-voice-input.md
+- docs/sessions/09-linkedin-polish.md
 
 ## Current status
 
 *(overwrite this section each session — it's the single source of truth for "where are we")*
 
-- Last completed: Session 8 — Voice input (speak the AI-generation objective instead of typing it, via Groq Whisper `whisper-large-v3-turbo`, same `GROQ_API_KEY` — `server/routes/voice.routes.ts` -> `server/controllers/voice.controller.ts` -> `server/services/voice.service.ts` -> `transcribeAudio()` in `server/integrations/groq.client.ts`, following session 7's layering. `POST /api/posts/transcribe` fills the objective field with the transcript for the user to review before generating — never auto-generates from voice. 60s client-side recording cap, 1s minimum, cancel-while-recording. See docs/sessions/08-voice-input.md for the full breakdown and the recording-cap/model notes for future tuning.)
-- Next up: Session 9 — LinkedIn auto-publish (stretch goal, manual-fallback if it doesn't land in time) + final polish pass, per docs/PLAN.md Day 7. Follow session 7's layering for any new code — see "What session 9 should do first" in docs/sessions/08-voice-input.md.
+**MVP complete — LinkedIn auto-publish: working (personal profile), plus a manual fallback.** This was the last planned session (docs/PLAN.md's 7-day plan, sessions 1-9). All core + stretch features from the plan have shipped.
+
+- Last completed: Session 9 — LinkedIn OAuth connect + auto-publish, following session 7's layering (`server/integrations/linkedin.client.ts` -> `server/services/linkedin.service.ts` -> `server/routes/linkedin.routes.ts` + `server/controllers/linkedin.controller.ts`). `scheduler.service.ts` now calls `publishToLinkedIn()` per due post instead of just flipping status. **Confirmed live end-to-end**: connected a real LinkedIn account, scheduled a real post, the real `@hourly` Netlify Scheduled Function picked it up and published it to the user's LinkedIn profile automatically (verified both in the `posts` table — `status: 'published'`, `published_at` set, no `error_message` — and visually on the live LinkedIn feed). Also shipped: a "Connect LinkedIn" card on Marketing showing connection status, and manual "Copy content" / "Mark as published" fallback actions on every scheduled/failed post in both Marketing and Calendar, so the app stays fully usable even without a live LinkedIn connection. Loading-spinner polish added to Marketing/Calendar's post lists. See docs/sessions/09-linkedin-polish.md for the full breakdown, including three real live-debugging incidents worth reading before touching this integration again.
+- Next up: nothing planned — this was the final session. If picked up again: (1) Company Page posting via LinkedIn's Community Management API (needs a review-gated LinkedIn application, not self-serve — see the stack section above), (2) token refresh before the 60-day expiry forces a reconnect, (3) the open items below.
 - Live URL: [glampro.netlify.app](https://glampro.netlify.app/)
 - Known issues / TODO:
-  - Voice input's live browser-mic round trip (click mic → speak → objective field fills in) is **confirmed working** by the user on the deployed site, right after this session's deploy.
-  - Everything from session 7's "Known issues" (Notes' live round-trip, the `SUPABASE_SERVICE_ROLE_KEY` rotation, LinkedIn's `failed` status still unwired) remains open — see docs/sessions/07-architecture-refactor.md.
+  - LinkedIn auto-publish only posts to the connected **member's personal profile**, never a Company Page — this is a hard LinkedIn platform/product limitation, not a bug (see the stack section above).
+  - No LinkedIn token refresh — access tokens last ~60 days, then the user must click "Connect LinkedIn" again from Marketing.
+  - When setting `LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET` in Netlify (or after changing them), **redeploy** before testing — a warm function container can keep serving the old value from memory even after the env var is updated, which cost real debugging time this session (see docs/sessions/09-linkedin-polish.md).
+  - Everything from session 7's "Known issues" (Notes' live round-trip, the `SUPABASE_SERVICE_ROLE_KEY` rotation) remains open — see docs/sessions/07-architecture-refactor.md.

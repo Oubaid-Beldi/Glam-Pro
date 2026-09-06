@@ -101,6 +101,7 @@ export async function handleLinkedInCallback(params: {
 
   const decoded = decodeState(params.state, clientSecret)
   if (!decoded) {
+    console.error('linkedin callback: invalid or expired state')
     return { status: 'error', message: 'Invalid or expired connection request. Please try again.' }
   }
 
@@ -111,11 +112,13 @@ export async function handleLinkedInCallback(params: {
     code: params.code,
   })
   if (!tokenResult.ok) {
+    console.error('linkedin callback: token exchange failed', tokenResult.error)
     return { status: 'error', message: 'Could not complete LinkedIn authorization. Please try again.' }
   }
 
   const urnResult = await fetchMemberUrn(tokenResult.accessToken)
   if (!urnResult.ok) {
+    console.error('linkedin callback: fetchMemberUrn failed', urnResult.error)
     return { status: 'error', message: 'Could not read your LinkedIn profile. Please try again.' }
   }
 
@@ -128,6 +131,7 @@ export async function handleLinkedInCallback(params: {
     updated_at: new Date().toISOString(),
   })
   if (error) {
+    console.error('linkedin callback: upsert failed', error.message)
     return { status: 'error', message: 'Could not save your LinkedIn connection. Please try again.' }
   }
 

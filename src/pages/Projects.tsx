@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { FolderKanban, Check } from 'lucide-react'
+import { FolderKanban, Check, Users } from 'lucide-react'
+import { MembersPanel } from '@/components/MembersPanel'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -118,6 +119,12 @@ export default function Projects() {
                   <p className="min-h-5 text-sm text-muted-foreground">
                     {project.description || 'No description'}
                   </p>
+                  {project.my_role !== 'owner' && (
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Users className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">Shared · Owner: {project.owner_name ?? 'unknown'}</span>
+                    </span>
+                  )}
                   <Button
                     type="button"
                     variant={isActive ? 'secondary' : 'outline'}
@@ -134,6 +141,8 @@ export default function Projects() {
           })}
         </div>
       </div>
+
+      {activeProject && <MembersPanel key={activeProject.id} project={activeProject} />}
     </div>
   )
 }

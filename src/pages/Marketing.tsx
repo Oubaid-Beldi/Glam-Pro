@@ -189,7 +189,15 @@ function VoiceRecorderControl({
   )
 }
 
-function LinkedInConnectionCard({ accessToken }: { accessToken: string | null }) {
+function LinkedInConnectionCard({
+  accessToken,
+  sharedOwnerName,
+}: {
+  accessToken: string | null
+  // Set when the active project is shared with the caller: its scheduled posts
+  // auto-publish through the project owner's LinkedIn, not the caller's.
+  sharedOwnerName: string | null
+}) {
   const [searchParams, setSearchParams] = useSearchParams()
   const { connected, loading, error, connect, refresh } = useLinkedInConnection(accessToken)
   const redirectResult = searchParams.get('linkedin')
@@ -235,7 +243,13 @@ function LinkedInConnectionCard({ accessToken }: { accessToken: string | null })
           </p>
         )}
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {!connected && !loading && !redirectResult && (
+        {sharedOwnerName && (
+          <p className="text-sm text-muted-foreground">
+            This project is shared with you: its scheduled posts publish to {sharedOwnerName}'s LinkedIn
+            (the project owner), not yours.
+          </p>
+        )}
+        {!connected && !loading && !redirectResult && !sharedOwnerName && (
           <p className="text-sm text-muted-foreground">
             Connect LinkedIn so scheduled posts publish automatically, or use "Copy content" +
             "Mark as published" below to post manually.
@@ -361,7 +375,12 @@ export default function Marketing() {
         </p>
       </div>
 
-      <LinkedInConnectionCard accessToken={session?.access_token ?? null} />
+      <LinkedInConnectionCard
+        accessToken={session?.access_token ?? null}
+        sharedOwnerName={
+          activeProject && activeProject.my_role !== 'owner' ? (activeProject.owner_name ?? 'the owner') : null
+        }
+      />
 
       <Card className="rounded-xl shadow-sm">
         <CardHeader>

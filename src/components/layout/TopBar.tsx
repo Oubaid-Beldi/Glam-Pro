@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/lib/auth-context'
 import { useProjects } from '@/lib/projects-context'
 
@@ -57,8 +58,16 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                 <DropdownMenuItem
                   key={project.id}
                   onClick={() => setActiveProjectId(project.id)}
+                  title={
+                    project.my_role !== 'owner' && project.owner_name
+                      ? `Owner: ${project.owner_name}`
+                      : undefined
+                  }
                 >
                   <span className="truncate">{project.name}</span>
+                  {project.my_role !== 'owner' && (
+                    <Badge className="ml-auto border-transparent bg-info/10 text-info">Shared</Badge>
+                  )}
                 </DropdownMenuItem>
               ))
             )}

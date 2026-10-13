@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { SignInScreen } from '@/components/SignInScreen'
+import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider, useAuth } from '@/lib/auth-context'
 import { ProjectsProvider } from '@/lib/projects-context'
 import Dashboard from '@/pages/Dashboard'
@@ -46,6 +47,7 @@ function App() {
   return (
     <AuthProvider>
       <AuthGate />
+      <Toaster position="top-center" />
     </AuthProvider>
   )
 }

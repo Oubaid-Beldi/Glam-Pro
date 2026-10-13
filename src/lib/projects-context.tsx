@@ -73,11 +73,16 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
   async function createProject(name: string, description: string) {
     if (!user) return { error: 'Not signed in' }
-    const { data, error } = await supabase
+    // Insert and read back in two statements, not insert().select(). Visibility is
+    // membership-based, and the creator's owner membership row is written by an
+    // AFTER INSERT trigger — Postgres checks RETURNING against the SELECT policy
+    // before that trigger has run, so a single insert-returning call is rejected.
+    const id = crypto.randomUUID()
+    const { error: insertError } = await supabase
       .from('projects')
-      .insert({ owner_id: user.id, name, description: description || null })
-      .select()
-      .single()
+      .insert({ id, owner_id: user.id, name, description: description || null })
+    if (insertError) return { error: insertError.message }
+    const { data, error } = await supabase.from('projects').select('*').eq('id', id).single()
     if (error) return { error: error.message }
     setProjects((prev) => [data, ...prev])
     setActiveProjectId(data.id)

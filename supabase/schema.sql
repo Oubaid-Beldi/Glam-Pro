@@ -1,6 +1,11 @@
 -- GLAM PRO — initial schema
 -- Run once in the Supabase SQL editor (Project > SQL Editor > New query > paste > Run).
 -- Safe to re-run: uses IF NOT EXISTS / CREATE OR REPLACE / DROP POLICY IF EXISTS.
+--
+-- This is the original single-owner schema. Later changes live in
+-- supabase/migrations/ and must be applied after it, in filename order
+-- (20261013120000_collaboration.sql replaces the owner-only RLS below with
+-- project membership).
 
 -- 1. profiles ---------------------------------------------------------------
 -- Mirrors auth.users, one row per user, created automatically on signup.

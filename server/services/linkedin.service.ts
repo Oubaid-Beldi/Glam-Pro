@@ -202,8 +202,10 @@ function mapLinkedInError(error: LinkedInCallError): Exclude<PublishToLinkedInRe
   }
 }
 
+// userId is the user whose own LinkedIn connection is used (linkedin_accounts.owner_id
+// is that user's id — "owner" of the token, unrelated to project ownership).
 export async function publishToLinkedIn(params: {
-  ownerId: string
+  userId: string
   content: string
 }): Promise<PublishToLinkedInResult> {
   const supabaseUrl = process.env.SUPABASE_URL
@@ -217,7 +219,7 @@ export async function publishToLinkedIn(params: {
   const { data: account } = await admin
     .from('linkedin_accounts')
     .select('access_token, member_urn, expires_at')
-    .eq('owner_id', params.ownerId)
+    .eq('owner_id', params.userId)
     .maybeSingle<LinkedInAccountRow>()
 
   if (!account) {

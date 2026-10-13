@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // A tiny in-memory stand-in for the supabase-js query builder — just the calls
-// the services actually make (select/insert/update/delete, eq/ilike/in/limit,
+// the services actually make (select/insert/update/delete, eq/ilike/lte/in/limit,
 // maybeSingle/single/returns, awaiting the builder). Not a Postgres emulator:
 // the only constraint it enforces is project_members' (project_id, user_id) key.
 
@@ -49,6 +49,11 @@ class FakeQuery implements PromiseLike<Result> {
   ilike(column: string, pattern: string) {
     const target = pattern.replace(/\\(.)/g, '$1').toLowerCase()
     this.filters.push((row) => typeof row[column] === 'string' && (row[column] as string).toLowerCase() === target)
+    return this
+  }
+  lte(column: string, value: string) {
+    // ISO-8601 timestamps compare correctly as strings.
+    this.filters.push((row) => typeof row[column] === 'string' && (row[column] as string) <= value)
     return this
   }
   in(column: string, values: unknown[]) {

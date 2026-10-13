@@ -89,6 +89,8 @@ posts (id uuid pk, project_id uuid fk->projects,
 
 Row Level Security: every table scoped by `owner_id`/`project_id` → `auth.uid()`. Simple, one policy pattern reused everywhere.
 
+> **Updated after the 7-day plan (session 12, collaboration):** grader feedback asked for several users per project, so single ownership was replaced by membership. Added `project_members (project_id, user_id, role 'owner'|'member')` and `project_invitations (project_id, email, invited_by, status 'pending'|'accepted'|'revoked')`, `created_by` on tasks/notes/posts, `assignee_id` on tasks, `avatar_url` on profiles. RLS is now membership-based (`is_project_member` / `is_project_owner` / `shares_project_with` helpers) instead of `owner_id`-based. Full model and policies: CLAUDE.md and `docs/sessions/12-collaboration-core.md`.
+
 ---
 
 ## 4. Day-by-day plan (deploy every day)
@@ -153,7 +155,7 @@ Each day ends with a push to `main` → live on Netlify. You always have a worki
 ## 5. Explicitly cut or descoped (and why)
 
 - **Instagram** — brief marks it optional; zero minutes budgeted.
-- **Multi-member roles/invites** — solo build; "assignee" on a task is a free-text field, not a real multi-user permission system this week.
+- ~~**Multi-member roles/invites**~~ — cut from the original week, **no longer out of scope**: built in session 12 after grader feedback (owner/member roles, invite by email, claim on first sign-in). Task assignee-from-teammates and "created by" UI follow in session 13.
 - **Kanban drag-and-drop** — a filterable/sortable list instead; upgrade later if you continue past the week.
 - **Guaranteed real LinkedIn auto-publish** — treated as Day 7 stretch with a manual fallback, because LinkedIn app setup is the one dependency with timeline risk outside your control.
 
@@ -169,4 +171,4 @@ Create accounts ahead of time so Day 1 isn't spent waiting on email verification
 
 ## 8. After the deadline (nice-to-haves, not this week)
 
-Instagram support, Kanban drag-and-drop, team invites & roles, richer calendar analytics, AI-generated images for posts, dark mode.
+Instagram support, Kanban drag-and-drop, richer calendar analytics, AI-generated images for posts, dark mode.

@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Byline } from '@/components/MemberAvatar'
 import { useProjects } from '@/lib/projects-context'
 import { useNotes, type Note, type NoteInput } from '@/lib/use-notes'
+import { useProjectMembers } from '@/lib/use-project-members'
 import { cn } from '@/lib/utils'
 
 const EMPTY_FORM: NoteInput = { title: '', content: '' }
@@ -23,6 +25,7 @@ export default function Notes() {
   const { notes, loading, error, createNote, updateNote, deleteNote } = useNotes(
     activeProject?.id ?? null,
   )
+  const { membersById } = useProjectMembers(activeProject?.id ?? null, false)
 
   const [form, setForm] = useState<NoteInput>(EMPTY_FORM)
   const [submitting, setSubmitting] = useState(false)
@@ -240,6 +243,7 @@ export default function Notes() {
                         {formatDate(note.created_at)}
                       </span>
                     </div>
+                    <Byline createdBy={note.created_by} membersById={membersById} />
                     {note.content && (
                       <p className="whitespace-pre-wrap text-sm text-muted-foreground wrap-break-word">
                         {note.content}

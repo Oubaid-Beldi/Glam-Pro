@@ -24,6 +24,8 @@ import { usePosts, type Post } from '@/lib/use-posts'
 import { useVoiceTranscription } from '@/lib/use-voice-transcription'
 import { useLinkedInConnection } from '@/lib/use-linkedin-connection'
 import { PostActions } from '@/components/PostActions'
+import { Byline } from '@/components/MemberAvatar'
+import { useProjectMembers } from '@/lib/use-project-members'
 import {
   STATUS_LABEL,
   STATUS_BADGE_CLASS,
@@ -189,15 +191,10 @@ function VoiceRecorderControl({
   )
 }
 
-function LinkedInConnectionCard({
-  accessToken,
-  sharedOwnerName,
-}: {
-  accessToken: string | null
-  // Set when the active project is shared with the caller: its scheduled posts
-  // auto-publish through the project owner's LinkedIn, not the caller's.
-  sharedOwnerName: string | null
-}) {
+// LinkedIn tokens belong to individual users: the scheduler publishes each post with
+// the token of the member who created it. So every member who creates posts needs
+// their own connection — this card is the prompt for whoever is looking at it.
+function LinkedInConnectionCard({ accessToken }: { accessToken: string | null }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const { connected, loading, error, connect, refresh } = useLinkedInConnection(accessToken)
   const redirectResult = searchParams.get('linkedin')
@@ -243,16 +240,11 @@ function LinkedInConnectionCard({
           </p>
         )}
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {sharedOwnerName && (
+        {!connected && !loading && !redirectResult && (
           <p className="text-sm text-muted-foreground">
-            This project is shared with you: its scheduled posts publish to {sharedOwnerName}'s LinkedIn
-            (the project owner), not yours.
-          </p>
-        )}
-        {!connected && !loading && !redirectResult && !sharedOwnerName && (
-          <p className="text-sm text-muted-foreground">
-            Connect LinkedIn so scheduled posts publish automatically, or use "Copy content" +
-            "Mark as published" below to post manually.
+            Posts publish from the LinkedIn account of the teammate who created them. Connect yours so
+            the posts you create auto-publish — until then they'll be marked failed at their scheduled
+            time. You can always use "Copy content" + "Mark as published" below to post manually.
           </p>
         )}
       </CardContent>
@@ -272,6 +264,7 @@ export default function Marketing() {
     unschedulePost,
     markPublished,
   } = usePosts(activeProject?.id ?? null)
+  const { membersById } = useProjectMembers(activeProject?.id ?? null, false)
 
   const [objective, setObjective] = useState('')
   const [generating, setGenerating] = useState(false)
@@ -375,12 +368,7 @@ export default function Marketing() {
         </p>
       </div>
 
-      <LinkedInConnectionCard
-        accessToken={session?.access_token ?? null}
-        sharedOwnerName={
-          activeProject && activeProject.my_role !== 'owner' ? (activeProject.owner_name ?? 'the owner') : null
-        }
-      />
+      <LinkedInConnectionCard accessToken={session?.access_token ?? null} />
 
       <Card className="rounded-xl shadow-sm">
         <CardHeader>
@@ -514,6 +502,7 @@ export default function Marketing() {
                       {formatDate(post.created_at)}
                     </span>
                   </div>
+                  <Byline createdBy={post.created_by} membersById={membersById} />
                   <p className="whitespace-pre-wrap text-sm text-muted-foreground wrap-break-word">
                     {post.content}
                   </p>

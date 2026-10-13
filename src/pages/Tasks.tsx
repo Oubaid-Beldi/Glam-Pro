@@ -13,9 +13,87 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Byline, MemberAvatar } from '@/components/MemberAvatar'
+import { useAuth } from '@/lib/auth-context'
 import { useProjects } from '@/lib/projects-context'
+import { memberName, useProjectMembers, type ProjectMember } from '@/lib/use-project-members'
 import { useTasks, type Task, type TaskInput, type TaskPriority, type TaskStatus } from '@/lib/use-tasks'
 import { cn } from '@/lib/utils'
+
+// Base UI's Select needs a non-empty value for the "nobody" option.
+const UNASSIGNED = 'unassigned'
+
+function AssigneeSelect({
+  value,
+  onChange,
+  members,
+  membersById,
+}: {
+  value: string
+  onChange: (assigneeId: string) => void
+  members: ProjectMember[]
+  membersById: Map<string, ProjectMember>
+}) {
+  return (
+    <Select value={value || UNASSIGNED} onValueChange={(v) => onChange(v === UNASSIGNED ? '' : String(v))}>
+      <SelectTrigger className="h-11 w-full md:h-9">
+        <SelectValue>
+          {(selected: string) => {
+            if (selected === UNASSIGNED) return 'Unassigned'
+            const member = membersById.get(selected)
+            // Still assigned to someone who has since left the project.
+            if (!member) return 'Former member'
+            return (
+              <>
+                <MemberAvatar member={member} size="sm" />
+                <span className="truncate">{memberName(member)}</span>
+              </>
+            )
+          }}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
+        {members.map((member) => (
+          <SelectItem key={member.user_id} value={member.user_id}>
+            <MemberAvatar member={member} size="sm" />
+            <span className="truncate">{memberName(member)}</span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+function TaskAssignee({ task, membersById }: { task: Task; membersById: Map<string, ProjectMember> }) {
+  if (task.assignee_id) {
+    const member = membersById.get(task.assignee_id)
+    if (!member) {
+      return (
+        <span className="flex items-center gap-1">
+          <User className="h-3.5 w-3.5" />
+          Former member
+        </span>
+      )
+    }
+    return (
+      <span className="flex min-w-0 items-center gap-1.5">
+        <MemberAvatar member={member} size="sm" />
+        <span className="truncate">{memberName(member)}</span>
+      </span>
+    )
+  }
+  // Legacy free-text assignee, read-only until someone picks a real member.
+  if (task.assignee) {
+    return (
+      <span className="flex items-center gap-1" title="Free-text assignee from before team members existed. Edit the task to pick a member.">
+        <User className="h-3.5 w-3.5" />
+        {task.assignee}
+      </span>
+    )
+  }
+  return null
+}
 
 const STATUS_LABEL: Record<TaskStatus, string> = { todo: 'To do', doing: 'Doing', done: 'Done' }
 const PRIORITY_LABEL: Record<TaskPriority, string> = { low: 'Low', medium: 'Medium', high: 'High' }
@@ -36,7 +114,7 @@ const PRIORITY_RANK: Record<TaskPriority, number> = { high: 3, medium: 2, low: 1
 
 type SortKey = 'newest' | 'due_date' | 'priority'
 
-const EMPTY_FORM: TaskInput = { title: '', status: 'todo', priority: 'medium', assignee: '', due_date: '' }
+const EMPTY_FORM: TaskInput = { title: '', status: 'todo', priority: 'medium', assignee_id: '', due_date: '' }
 
 function formatDate(value: string | null) {
   if (!value) return null
@@ -46,10 +124,12 @@ function formatDate(value: string | null) {
 }
 
 export default function Tasks() {
+  const { user } = useAuth()
   const { activeProject, loading: projectsLoading } = useProjects()
   const { tasks, loading, error, createTask, updateTask, deleteTask } = useTasks(
     activeProject?.id ?? null,
   )
+  const { members, membersById } = useProjectMembers(activeProject?.id ?? null, false)
 
   const [form, setForm] = useState<TaskInput>(EMPTY_FORM)
   const [submitting, setSubmitting] = useState(false)
@@ -57,6 +137,7 @@ export default function Tasks() {
 
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all')
+  const [assigneeFilter, setAssigneeFilter] = useState<'all' | 'me'>('all')
   const [sortKey, setSortKey] = useState<SortKey>('newest')
 
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -68,6 +149,7 @@ export default function Tasks() {
     const filtered = tasks.filter((t) => {
       if (statusFilter !== 'all' && t.status !== statusFilter) return false
       if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false
+      if (assigneeFilter === 'me' && t.assignee_id !== user?.id) return false
       return true
     })
 
@@ -83,7 +165,7 @@ export default function Tasks() {
     })
 
     return sorted
-  }, [tasks, statusFilter, priorityFilter, sortKey])
+  }, [tasks, statusFilter, priorityFilter, assigneeFilter, user?.id, sortKey])
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()
@@ -106,7 +188,7 @@ export default function Tasks() {
       title: task.title,
       status: task.status,
       priority: task.priority,
-      assignee: task.assignee ?? '',
+      assignee_id: task.assignee_id ?? '',
       due_date: task.due_date ?? '',
     })
   }
@@ -232,13 +314,12 @@ export default function Tasks() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="task-assignee">Assignee</Label>
-                <Input
-                  id="task-assignee"
-                  className="h-11 md:h-9"
-                  value={form.assignee}
-                  onChange={(e) => setForm((f) => ({ ...f, assignee: e.target.value }))}
-                  placeholder="Optional"
+                <Label>Assignee</Label>
+                <AssigneeSelect
+                  value={form.assignee_id}
+                  onChange={(assigneeId) => setForm((f) => ({ ...f, assignee_id: assigneeId }))}
+                  members={members}
+                  membersById={membersById}
                 />
               </div>
 
@@ -301,6 +382,16 @@ export default function Tasks() {
                     {PRIORITY_LABEL[p]}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={assigneeFilter} onValueChange={(v) => setAssigneeFilter(v as 'all' | 'me')}>
+              <SelectTrigger className="h-11 md:h-8" size="sm">
+                <SelectValue>{(v: string) => (v === 'me' ? 'Assigned to me' : 'All assignees')}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All assignees</SelectItem>
+                <SelectItem value="me">Assigned to me</SelectItem>
               </SelectContent>
             </Select>
 
@@ -399,14 +490,18 @@ export default function Tasks() {
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <Label htmlFor={`edit-assignee-${task.id}`}>Assignee</Label>
-                        <Input
-                          id={`edit-assignee-${task.id}`}
-                          className="h-11 md:h-9"
-                          value={editForm.assignee}
-                          onChange={(e) => setEditForm((f) => ({ ...f, assignee: e.target.value }))}
-                          placeholder="Optional"
+                        <Label>Assignee</Label>
+                        <AssigneeSelect
+                          value={editForm.assignee_id}
+                          onChange={(assigneeId) => setEditForm((f) => ({ ...f, assignee_id: assigneeId }))}
+                          members={members}
+                          membersById={membersById}
                         />
+                        {!task.assignee_id && task.assignee && (
+                          <p className="text-xs text-muted-foreground">
+                            Previously "{task.assignee}" (free text)
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-1.5">
@@ -463,14 +558,9 @@ export default function Tasks() {
                         {PRIORITY_LABEL[task.priority]}
                       </Badge>
                     </div>
-                    {(task.assignee || dueDateLabel) && (
+                    {(task.assignee_id || task.assignee || dueDateLabel) && (
                       <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                        {task.assignee && (
-                          <span className="flex items-center gap-1">
-                            <User className="h-3.5 w-3.5" />
-                            {task.assignee}
-                          </span>
-                        )}
+                        <TaskAssignee task={task} membersById={membersById} />
                         {dueDateLabel && (
                           <span className="flex items-center gap-1">
                             <CalendarDays className="h-3.5 w-3.5" />
@@ -479,6 +569,7 @@ export default function Tasks() {
                         )}
                       </div>
                     )}
+                    <Byline createdBy={task.created_by} membersById={membersById} />
                   </div>
 
                   <div className="flex shrink-0 items-center gap-1">

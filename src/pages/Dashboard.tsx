@@ -12,18 +12,27 @@ import {
   Send,
   XCircle,
   Loader2,
+  UserCheck,
+  Users,
   type LucideIcon,
 } from 'lucide-react'
+import { MemberAvatar } from '@/components/MemberAvatar'
+import { AvatarGroup, AvatarGroupCount } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '@/lib/auth-context'
 import { useProjects } from '@/lib/projects-context'
+import { useProjectMembers } from '@/lib/use-project-members'
 import { useTasks } from '@/lib/use-tasks'
 import { useNotes } from '@/lib/use-notes'
 import { usePosts } from '@/lib/use-posts'
 import { STATUS_LABEL, formatDateTime } from '@/lib/post-format'
 import { cn } from '@/lib/utils'
 
+const MAX_TEAM_AVATARS = 5
+
 export default function Dashboard() {
+  const { user } = useAuth()
   const { activeProject, loading: projectsLoading } = useProjects()
   const projectId = activeProject?.id ?? null
 
@@ -31,7 +40,12 @@ export default function Dashboard() {
   const { notes, loading: notesLoading } = useNotes(projectId)
   const { posts, loading: postsLoading } = usePosts(projectId)
 
-  const loading = tasksLoading || notesLoading || postsLoading
+  const { members, loading: membersLoading } = useProjectMembers(projectId, false)
+
+  const loading = tasksLoading || notesLoading || postsLoading || membersLoading
+
+  // Open (not done) tasks assigned to the signed-in user.
+  const assignedToMe = tasks.filter((t) => t.assignee_id === user?.id && t.status !== 'done').length
 
   const taskCounts = {
     todo: tasks.filter((t) => t.status === 'todo').length,
@@ -97,6 +111,47 @@ export default function Dashboard() {
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Loading dashboard…
         </p>
+      )}
+
+      {!loading && activeProject && (
+        <section className="flex flex-col gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Users className="h-4 w-4" />
+            You &amp; your team
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <StatCard
+              label="Assigned to me (open)"
+              value={assignedToMe}
+              icon={UserCheck}
+              colorClass="text-info"
+              bgClass="bg-info/10"
+            />
+            <Card className="rounded-xl shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Team</CardTitle>
+                <Link
+                  to="/projects"
+                  className="flex min-h-11 items-center px-1 text-xs font-medium text-primary hover:underline md:min-h-0"
+                >
+                  {activeProject.my_role === 'owner' ? 'Manage' : 'View'}
+                </Link>
+              </CardHeader>
+              <CardContent className="flex items-center gap-3">
+                <AvatarGroup>
+                  {members.slice(0, MAX_TEAM_AVATARS).map((member) => (
+                    <MemberAvatar key={member.user_id} member={member} />
+                  ))}
+                  {members.length > MAX_TEAM_AVATARS && (
+                    <AvatarGroupCount>+{members.length - MAX_TEAM_AVATARS}</AvatarGroupCount>
+                  )}
+                </AvatarGroup>
+                <p className="text-2xl font-semibold text-foreground">{members.length}</p>
+                <p className="text-sm text-muted-foreground">{members.length === 1 ? 'member' : 'members'}</p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
       )}
 
       {isEmptyProject && (

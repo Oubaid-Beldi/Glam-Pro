@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { apiFetch } from '@/lib/api'
 import type { MemberRole } from '@/lib/projects-context'
@@ -8,6 +8,10 @@ export type ProjectMember = {
   role: MemberRole
   created_at: string
   profiles: { id: string; email: string | null; name: string | null; avatar_url: string | null } | null
+}
+
+export function memberName(member: ProjectMember | undefined | null): string {
+  return member?.profiles?.name ?? member?.profiles?.email ?? 'Unknown user'
 }
 
 export type PendingInvitation = {
@@ -21,7 +25,8 @@ type InviteOutcome =
   | { kind: 'invited'; invitation: PendingInvitation }
 
 // Reads are direct RLS-scoped Supabase queries (members can read their project's
-// member list; only the owner can read its invitations). Writes go through the
+// member list; only the owner can read its invitations). Pages that only need the
+// member list (assignee picker, "by <name>" bylines) pass isOwner = false. Writes go through the
 // backend, which looks users up by email — something the client can't do under RLS.
 export function useProjectMembers(projectId: string | null, isOwner: boolean) {
   const [members, setMembers] = useState<ProjectMember[]>([])
@@ -98,5 +103,7 @@ export function useProjectMembers(projectId: string | null, isOwner: boolean) {
     return { error: null }
   }
 
-  return { members, invitations, loading, error, refresh, invite, revokeInvitation, removeMember }
+  const membersById = useMemo(() => new Map(members.map((m) => [m.user_id, m])), [members])
+
+  return { members, membersById, invitations, loading, error, refresh, invite, revokeInvitation, removeMember }
 }

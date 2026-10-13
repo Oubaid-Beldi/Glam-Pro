@@ -5,6 +5,8 @@ import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { PostActions } from '@/components/PostActions'
+import { Byline } from '@/components/MemberAvatar'
+import { useProjectMembers } from '@/lib/use-project-members'
 import { useProjects } from '@/lib/projects-context'
 import { usePosts, type Post, type PostStatus } from '@/lib/use-posts'
 import { STATUS_LABEL, STATUS_BADGE_CLASS, formatDate, formatDateTime } from '@/lib/post-format'
@@ -57,6 +59,7 @@ const SECTIONS: Section[] = [
 export default function Calendar() {
   const { activeProject, loading: projectsLoading } = useProjects()
   const { posts, loading, error, markPublished } = usePosts(activeProject?.id ?? null)
+  const { membersById } = useProjectMembers(activeProject?.id ?? null, false)
 
   const grouped = useMemo(() => {
     const byStatus = new Map<PostStatus, Post[]>()
@@ -163,6 +166,7 @@ export default function Calendar() {
                               {post.platform}
                             </Badge>
                           </div>
+                          <Byline createdBy={post.created_by} membersById={membersById} />
                           <p className="text-xs text-muted-foreground">
                             {section.dateLabel}{' '}
                             {date

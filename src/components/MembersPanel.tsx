@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Loader2, LogOut, Mail, UserMinus, UserPlus, Users, X } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { MemberAvatar } from '@/components/MemberAvatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/auth-context'
 import { formatDate } from '@/lib/post-format'
 import { useProjects, type Project } from '@/lib/projects-context'
-import { useProjectMembers } from '@/lib/use-project-members'
+import { memberName, useProjectMembers } from '@/lib/use-project-members'
 import { cn } from '@/lib/utils'
 
 export function MembersPanel({ project }: { project: Project }) {
@@ -130,19 +130,12 @@ export function MembersPanel({ project }: { project: Project }) {
         ) : (
           <ul className="flex flex-col divide-y divide-border">
             {members.map((member) => {
-              const name = member.profiles?.name ?? member.profiles?.email ?? 'Unknown user'
+              const name = memberName(member)
               const isMe = member.user_id === user?.id
               const canRemove = isOwner && member.role !== 'owner'
               return (
                 <li key={member.user_id} className="flex items-center gap-3 py-2">
-                  <Avatar>
-                    {member.profiles?.avatar_url && (
-                      <AvatarImage src={member.profiles.avatar_url} alt={name} referrerPolicy="no-referrer" />
-                    )}
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <MemberAvatar member={member} />
                   <div className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate text-sm font-medium text-foreground">
                       {name}

@@ -14,6 +14,8 @@ export type Post = {
   scheduled_at: string | null
   published_at: string | null
   error_message: string | null
+  // Also decides whose LinkedIn account the scheduler publishes this post through.
+  created_by: string | null
   created_at: string
 }
 

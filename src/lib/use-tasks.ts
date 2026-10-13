@@ -10,8 +10,12 @@ export type Task = {
   title: string
   status: TaskStatus
   priority: TaskPriority
+  // Legacy free-text assignee from before collaboration. Never written anymore —
+  // shown read-only on tasks that don't have a real assignee_id yet.
   assignee: string | null
+  assignee_id: string | null
   due_date: string | null
+  created_by: string | null
   created_at: string
 }
 
@@ -19,7 +23,7 @@ export type TaskInput = {
   title: string
   status: TaskStatus
   priority: TaskPriority
-  assignee: string
+  assignee_id: string // '' = unassigned
   due_date: string
 }
 
@@ -63,7 +67,7 @@ export function useTasks(projectId: string | null) {
         title: input.title,
         status: input.status,
         priority: input.priority,
-        assignee: input.assignee || null,
+        assignee_id: input.assignee_id || null,
         due_date: input.due_date || null,
       })
       .select()
@@ -78,7 +82,7 @@ export function useTasks(projectId: string | null) {
       .from('tasks')
       .update({
         ...patch,
-        assignee: patch.assignee !== undefined ? patch.assignee || null : undefined,
+        assignee_id: patch.assignee_id !== undefined ? patch.assignee_id || null : undefined,
         due_date: patch.due_date !== undefined ? patch.due_date || null : undefined,
       })
       .eq('id', id)

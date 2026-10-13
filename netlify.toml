@@ -2,9 +2,6 @@
   command = "npm run build"
   publish = "dist"
   functions = "netlify/functions"
-  # Skip the build (and the production-deploy credits) when a push only touches
-  # docs/ or CLAUDE.md. Exit 0 = nothing else changed = skip; exit 1 = build.
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)docs' ':(exclude)CLAUDE.md'"
 
 [functions]
   node_bundler = "esbuild"
